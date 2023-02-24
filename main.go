@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const ChartFile = "Chart.yaml"
@@ -38,7 +38,7 @@ type Chart struct {
 
 func main() {
 	chartPath := path.Join(os.Getenv("INPUT_PATH"), ChartFile)
-	fmt.Println(fmt.Sprintf(`Reading values from %s`, chartPath))
+	fmt.Printf("Reading values from %s\n", chartPath)
 
 	dat, readErr := ioutil.ReadFile(chartPath)
 	check(readErr)
@@ -47,22 +47,28 @@ func main() {
 	yamlErr := yaml.Unmarshal([]byte(dat), &chart)
 	check(yamlErr)
 
-	fmt.Println(fmt.Sprintf(`apiVersion=%s >> $GITHUB_OUTPUT`, chart.ApiVersion))
-	fmt.Println(fmt.Sprintf(`name=%s >> $GITHUB_OUTPUT`, chart.Name))
-	fmt.Println(fmt.Sprintf(`version=%s >> $GITHUB_OUTPUT`, chart.Version))
-	fmt.Println(fmt.Sprintf(`kubeVersion=%s >> $GITHUB_OUTPUT`, chart.KubeVersion))
-	fmt.Println(fmt.Sprintf(`description=%s >> $GITHUB_OUTPUT`, chart.Description))
-	fmt.Println(fmt.Sprintf(`type=%s >> $GITHUB_OUTPUT`, chart.Type))
-	fmt.Println(fmt.Sprintf(`keywords=%s >> $GITHUB_OUTPUT`, chart.Keywords))
-	fmt.Println(fmt.Sprintf(`home=%s >> $GITHUB_OUTPUT`, chart.Home))
-	fmt.Println(fmt.Sprintf(`sources=%s >> $GITHUB_OUTPUT`, strings.Join(chart.Sources[:], ",")))
-	fmt.Println(fmt.Sprintf(`repository=%s >> $GITHUB_OUTPUT`, chart.Repository))
-	fmt.Println(fmt.Sprintf(`icon=%s >> $GITHUB_OUTPUT`, chart.Icon))
-	fmt.Println(fmt.Sprintf(`appVersion=%s >> $GITHUB_OUTPUT`, chart.AppVersion))
-	fmt.Println(fmt.Sprintf(`deprecated=%t >> $GITHUB_OUTPUT`, chart.Deprecated))
+	var output_lines []byte
+
+	output_lines = append(output_lines, fmt.Sprintf("apiVersion=%s\n", chart.ApiVersion)...)
+	output_lines = append(output_lines, fmt.Sprintf("name=%s\n", chart.Name)...)
+	output_lines = append(output_lines, fmt.Sprintf("version=%s\n", chart.Version)...)
+	output_lines = append(output_lines, fmt.Sprintf("kubeVersion=%s\n", chart.KubeVersion)...)
+	output_lines = append(output_lines, fmt.Sprintf("description=%s\n", chart.Description)...)
+	output_lines = append(output_lines, fmt.Sprintf("type=%s\n", chart.Type)...)
+	output_lines = append(output_lines, fmt.Sprintf("keywords=%s\n", chart.Keywords)...)
+	output_lines = append(output_lines, fmt.Sprintf("home=%s\n", chart.Home)...)
+	output_lines = append(output_lines, fmt.Sprintf("sources=%s\n", strings.Join(chart.Sources[:], ","))...)
+	output_lines = append(output_lines, fmt.Sprintf("repository=%s\n", chart.Repository)...)
+	output_lines = append(output_lines, fmt.Sprintf("icon=%s\n", chart.Icon)...)
+	output_lines = append(output_lines, fmt.Sprintf("appVersion=%s\n", chart.AppVersion)...)
+	output_lines = append(output_lines, fmt.Sprintf("deprecated=%t\n", chart.Deprecated)...)
 
 	for _, dep := range chart.Dependencies {
-		fmt.Println(fmt.Sprintf(`dependencies_%s_version=%s`, dep.Name, dep.Version))
-		fmt.Println(fmt.Sprintf(`dependencies_%s_repository=%s`, dep.Name, dep.Repository))
+		fmt.Printf("dependencies_%s_version=%s\n", dep.Name, dep.Version)
+		fmt.Printf("dependencies_%s_repository=%s\n", dep.Name, dep.Repository)
 	}
+
+	err := os.WriteFile(os.Getenv("GITHUB_OUTPUT"), output_lines, 0640)
+	check(err)
+
 }
